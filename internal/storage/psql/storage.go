@@ -6,6 +6,8 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/hesoyamTM/apphelper-report/internal/models"
+	"github.com/hesoyamTM/apphelper-sso/pkg/logger"
+	"go.uber.org/zap"
 
 	"github.com/jackc/pgx/v5/pgxpool"
 )
@@ -48,9 +50,24 @@ func (s *Storage) ProvideReport(ctx context.Context, groupId, studentId, trainer
 		return nil, nil
 	}
 
-	query := fmt.Sprintf(`SELECT group_id, student_id, trainer_id, description, date FROM reports WHERE %s`, parseProvideReportsCondition(groupId, studentId, trainerId))
+	q, i1, i2, i3 := parseProvideReportsCondition(groupId, studentId, trainerId)
 
-	rows, err := s.db.Query(ctx, query)
+	query := fmt.Sprintf(`SELECT group_id, student_id, trainer_id, description, date FROM reports WHERE %s`, q)
+	log := logger.GetLoggerFromCtx(ctx)
+	log.Info(ctx, "query", zap.String("query", query))
+
+	args := make([]interface{}, 0)
+	if i1 {
+		args = append(args, groupId)
+	}
+	if i2 {
+		args = append(args, studentId)
+	}
+	if i3 {
+		args = append(args, trainerId)
+	}
+
+	rows, err := s.db.Query(ctx, query, args...)
 	if err != nil {
 		return nil, fmt.Errorf("%s: %w", op, err)
 	}
@@ -68,28 +85,36 @@ func (s *Storage) ProvideReport(ctx context.Context, groupId, studentId, trainer
 	return reports, nil
 }
 
-func parseProvideReportsCondition(groupId, studentId, trainerId uuid.UUID) string {
+func parseProvideReportsCondition(groupId, studentId, trainerId uuid.UUID) (query string, i1 bool, i2 bool, i3 bool) {
 
-	query := ""
+	query = ""
+	i := 1
+	i1, i2, i3 = false, false, false
 
 	if groupId != uuid.Nil {
 		if query != "" {
 			query += " AND"
 		}
-		query += fmt.Sprintf(" group_id = %d", groupId)
+		query += fmt.Sprintf(" group_id = $%d", i)
+		i++
+		i1 = true
 	}
 	if studentId != uuid.Nil {
 		if query != "" {
 			query += " AND"
 		}
-		query += fmt.Sprintf(" student_id = %d", studentId)
+		query += fmt.Sprintf(" student_id = $%d", i)
+		i++
+		i2 = true
 	}
 	if trainerId != uuid.Nil {
 		if query != "" {
 			query += " AND"
 		}
-		query += fmt.Sprintf(" trainer_id = %d", trainerId)
+		query += fmt.Sprintf(" trainer_id = $%d", i)
+		i++
+		i3 = true
 	}
 
-	return query
+	return
 }
