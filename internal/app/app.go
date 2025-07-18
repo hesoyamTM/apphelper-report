@@ -26,6 +26,7 @@ type PsqlOpts struct {
 }
 
 func New(ctx context.Context, grpcOpts GrpcOpts, psqlOpts PsqlOpts) *App {
+	psql.RunMigrate(ctx, psqlOpts.Host, psqlOpts.User, psqlOpts.Pass, psqlOpts.DB)
 	storage := psql.New(psqlOpts.Host, psqlOpts.User, psqlOpts.Pass, psqlOpts.DB, psqlOpts.Port)
 
 	reportService := report.New(ctx, storage)

@@ -1,11 +1,15 @@
 package models
 
-import "time"
+import (
+	"time"
+
+	"github.com/google/uuid"
+)
 
 type Report struct {
-	GroupId     int64
-	StudentId   int64
-	TrainerId   int64
+	GroupId     uuid.UUID
+	StudentId   uuid.UUID
+	TrainerId   uuid.UUID
 	Description string
 	Date        time.Time
 }

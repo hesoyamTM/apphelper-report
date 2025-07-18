@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/google/uuid"
 	"github.com/hesoyamTM/apphelper-report/internal/models"
 
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -26,7 +27,7 @@ func New(host, user, password, db string, port int) *Storage {
 	}
 }
 
-func (s *Storage) CreateReport(ctx context.Context, groupId, studentId, trainerId int64, desc string) error {
+func (s *Storage) CreateReport(ctx context.Context, groupId, studentId, trainerId uuid.UUID, desc string) error {
 	const op = "psql.CreateReport"
 
 	query := `INSERT INTO reports (student_id, trainer_id, group_id, description, date) VALUES ($1, $2, $3, $4, now())`
@@ -40,10 +41,10 @@ func (s *Storage) CreateReport(ctx context.Context, groupId, studentId, trainerI
 	return nil
 }
 
-func (s *Storage) ProvideReport(ctx context.Context, groupId, studentId, trainerId int64) ([]models.Report, error) {
+func (s *Storage) ProvideReport(ctx context.Context, groupId, studentId, trainerId uuid.UUID) ([]models.Report, error) {
 	const op = "psql.ProvideReport"
 
-	if groupId == 0 && studentId == 0 && trainerId == 0 {
+	if groupId == uuid.Nil && studentId == uuid.Nil && trainerId == uuid.Nil {
 		return nil, nil
 	}
 
@@ -67,23 +68,23 @@ func (s *Storage) ProvideReport(ctx context.Context, groupId, studentId, trainer
 	return reports, nil
 }
 
-func parseProvideReportsCondition(groupId, studentId, trainerId int64) string {
+func parseProvideReportsCondition(groupId, studentId, trainerId uuid.UUID) string {
 
 	query := ""
 
-	if groupId > 0 {
+	if groupId != uuid.Nil {
 		if query != "" {
 			query += " AND"
 		}
 		query += fmt.Sprintf(" group_id = %d", groupId)
 	}
-	if studentId > 0 {
+	if studentId != uuid.Nil {
 		if query != "" {
 			query += " AND"
 		}
 		query += fmt.Sprintf(" student_id = %d", studentId)
 	}
-	if trainerId > 0 {
+	if trainerId != uuid.Nil {
 		if query != "" {
 			query += " AND"
 		}

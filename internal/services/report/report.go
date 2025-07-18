@@ -5,6 +5,7 @@ import (
 	"crypto/ecdsa"
 	"fmt"
 
+	"github.com/google/uuid"
 	"github.com/hesoyamTM/apphelper-report/internal/models"
 
 	"github.com/hesoyamTM/apphelper-sso/pkg/logger"
@@ -12,8 +13,8 @@ import (
 )
 
 type ReportStorage interface {
-	CreateReport(ctx context.Context, groupId, studentId, trainerId int64, desc string) error
-	ProvideReport(ctx context.Context, groupId, studentId, trainerId int64) ([]models.Report, error)
+	CreateReport(ctx context.Context, groupId, studentId, trainerId uuid.UUID, desc string) error
+	ProvideReport(ctx context.Context, groupId, studentId, trainerId uuid.UUID) ([]models.Report, error)
 }
 
 type Report struct {
@@ -31,7 +32,7 @@ func New(ctx context.Context, db ReportStorage) *Report {
 	}
 }
 
-func (r *Report) CreateReport(ctx context.Context, groupId, studentId, trainerId int64, desc string) error {
+func (r *Report) CreateReport(ctx context.Context, groupId, studentId, trainerId uuid.UUID, desc string) error {
 	const op = "report.CreateReport"
 	log := logger.GetLoggerFromCtx(ctx)
 
@@ -46,7 +47,7 @@ func (r *Report) CreateReport(ctx context.Context, groupId, studentId, trainerId
 	return nil
 }
 
-func (r *Report) GetReports(ctx context.Context, groupId, student_id, trainer_id int64) ([]models.Report, error) {
+func (r *Report) GetReports(ctx context.Context, groupId, student_id, trainer_id uuid.UUID) ([]models.Report, error) {
 	const op = "report.GetReport"
 	log := logger.GetLoggerFromCtx(ctx)
 

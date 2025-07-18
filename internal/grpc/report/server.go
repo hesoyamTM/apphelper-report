@@ -3,6 +3,7 @@ package report
 import (
 	"context"
 
+	"github.com/google/uuid"
 	"github.com/hesoyamTM/apphelper-report/internal/models"
 
 	reportv1 "github.com/hesoyamTM/apphelper-protos/gen/go/report"
@@ -13,8 +14,8 @@ import (
 )
 
 type Report interface {
-	CreateReport(ctx context.Context, groupId, studentId, trainerId int64, desc string) error
-	GetReports(ctx context.Context, groupId, studentId, trainerId int64) ([]models.Report, error)
+	CreateReport(ctx context.Context, groupId, studentId, trainerId uuid.UUID, desc string) error
+	GetReports(ctx context.Context, groupId, studentId, trainerId uuid.UUID) ([]models.Report, error)
 }
 
 type serverAPI struct {
@@ -27,21 +28,22 @@ func RegisterServer(gRpc *grpc.Server, service Report) {
 }
 
 func (s *serverAPI) CreateReport(ctx context.Context, req *reportv1.CreateReportRequest) (*reportv1.Empty, error) {
-	studentId := req.GetStudentId()
-	trainerId := req.GetTrainerId()
-	groupId := req.GetGroupId()
+	studentId, err := uuid.Parse(req.GetStudentId())
+	if err != nil {
+		return nil, status.Error(codes.InvalidArgument, "validation error")
+	}
+	trainerId, err := uuid.Parse(req.GetTrainerId())
+	if err != nil {
+		return nil, status.Error(codes.InvalidArgument, "validation error")
+	}
+	groupId, err := uuid.Parse(req.GetGroupId())
+	if err != nil {
+		return nil, status.Error(codes.InvalidArgument, "validation error")
+	}
 	desc := req.GetDescription()
 
 	if err := CheckIdPermission(ctx, studentId, trainerId); err != nil {
 		return nil, err
-	}
-
-	// validation
-	if studentId <= 0 {
-		return nil, status.Error(codes.InvalidArgument, "validation error")
-	}
-	if trainerId <= 0 {
-		return nil, status.Error(codes.InvalidArgument, "validation error")
 	}
 
 	if err := s.reportService.CreateReport(ctx, groupId, studentId, trainerId, desc); err != nil {
@@ -52,15 +54,24 @@ func (s *serverAPI) CreateReport(ctx context.Context, req *reportv1.CreateReport
 }
 
 func (s *serverAPI) GetReports(ctx context.Context, req *reportv1.GetReportsRequest) (*reportv1.GetReportsResponse, error) {
-	studentId := req.GetStudentId()
-	trainerId := req.GetTrainerId()
-	groupId := req.GetGroupId()
+	studentId, err := uuid.Parse(req.GetStudentId())
+	if err != nil {
+		studentId = uuid.Nil
+	}
+	trainerId, err := uuid.Parse(req.GetTrainerId())
+	if err != nil {
+		trainerId = uuid.Nil
+	}
+	groupId, err := uuid.Parse(req.GetGroupId())
+	if err != nil {
+		groupId = uuid.Nil
+	}
 
 	if err := CheckIdPermission(ctx, studentId, trainerId); err != nil {
 		return nil, err
 	}
 
-	if studentId <= 0 && trainerId <= 0 {
+	if studentId == uuid.Nil && trainerId == uuid.Nil {
 		return nil, status.Error(codes.InvalidArgument, "validation error")
 	}
 
@@ -72,9 +83,9 @@ func (s *serverAPI) GetReports(ctx context.Context, req *reportv1.GetReportsRequ
 	res := make([]*reportv1.Report, len(reports))
 	for i := range reports {
 		res[i] = &reportv1.Report{
-			GroupId:     reports[i].GroupId,
-			StudentId:   reports[i].StudentId,
-			TrainerId:   reports[i].TrainerId,
+			GroupId:     reports[i].GroupId.String(),
+			StudentId:   reports[i].StudentId.String(),
+			TrainerId:   reports[i].TrainerId.String(),
 			Description: reports[i].Description,
 			Date:        timestamppb.New(reports[i].Date),
 		}
